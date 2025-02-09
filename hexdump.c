@@ -8,12 +8,12 @@ int lines = 0;
 
 void print_ascii()
 {
-    printf("\t| "); 
+    printf("  | "); 
     for (int i = 0; i < sizeof buffer; i++)
     {
-	(buffer[i] > 32) ? printf("%c", buffer[i]) : printf(".");
+	(buffer[i] > 32 && buffer[i] < 127) ? printf("%c", buffer[i]) : printf(".");
     }
-    printf("\t|"); 
+    printf("  |"); 
 }
 
 int main(int argc, char *argv[])
@@ -28,11 +28,10 @@ int main(int argc, char *argv[])
 
     while (fgets(buffer, sizeof buffer, fptr) != NULL)
     {
-	printf("%d\t: ", lines);
+	printf("%08X  : ", lines);
 	for (int i = 0; i < sizeof buffer; i++)
 	{
-	    if (buffer[i] < 16) { printf("0"); }
-	    printf("%X ", buffer[i]);
+	    printf("%02X ", buffer[i]);
 	}
 	print_ascii();
 	printf("\n");
