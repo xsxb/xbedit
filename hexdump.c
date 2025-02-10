@@ -7,11 +7,23 @@ unsigned char buffer[16];
 char dec_ascii[16];
 int lines = 0;
 
+int cpos[2];
+int max_x;
+int max_y;
+int input;
+
 WINDOW *addr_win;
 WINDOW *hex_win;
 WINDOW *ascii_win;
 
-int tui_size_y = 40;
+int tui_size_y = 20;
+int hex_win_size_x = 51;
+
+void quit()
+{
+    	endwin();
+	exit(0);
+}
 
 void print_ascii()
 {
@@ -94,8 +106,14 @@ int main(int argc, char *argv[])
 
     //Init ncurses TUI
     initscr();
+    noecho();
+    start_color();
+
+    getmaxyx(stdscr, max_y, max_x);
+    tui_size_y = max_y;
+
     addr_win = newwin(tui_size_y,12,0,0);
-    hex_win = newwin(tui_size_y,51,0,12);
+    hex_win = newwin(tui_size_y,hex_win_size_x,0,12);
     ascii_win = newwin(tui_size_y,20,0,63);
     refresh();
 
@@ -107,6 +125,9 @@ int main(int argc, char *argv[])
     mvwprintw(hex_win, 0, 1, "VALUES");
     mvwprintw(ascii_win, 0, 1, "ASCII");
 
+    move(1, 14);
+    getyx(hex_win, cpos[0],cpos[1]);
+
     tui_hexdump();
 
     wrefresh(addr_win);
@@ -114,7 +135,37 @@ int main(int argc, char *argv[])
     wrefresh(ascii_win);
 
 
-    getch();
+    //Handle navigation input
+    while (1)
+    {
+	input = getch();
+	switch(input)
+	{
+	//Menu
+	    case 113:  quit();	//q 
+	//Vertical movement
+	    case 106:  cpos[0]++; break;  //j
+	    case 107:  cpos[0]--; break;  //k
+	//Horizontal movement in hex_win
+	    case 104:  if ((cpos[1]+1) % 3 == 0) { cpos[1]--;}	//skip space
+		       cpos[1]--;    	 //h
+		       break;
+	    case 108:  if ((cpos[1]) % 3 == 0) { cpos[1]++;}	//skip space
+		       cpos[1]++;    	 //l
+		       break;
+	}
+	//Confine cursor to hex_win
+	if (cpos[0] >= tui_size_y-1) { cpos[0]--; }
+	else if (cpos[0] < 1) { cpos[0]++; }
+	else if (cpos[1] >= hex_win_size_x-2) { cpos[1]-=2; }
+	else if (cpos[1] <= 1) { cpos[1]+=2; }
+	wmove(hex_win, cpos[0], cpos[1]);
+	//Highlight corresponding ASCII
+	//mvwchgat(ascii_win, cpos[0], cpos[1]/2, 1, A_STANDOUT, 0, NULL);
+	wrefresh(hex_win);
+	wrefresh(ascii_win);
+    }
+
     endwin();
 
     fclose(fptr);
