@@ -1,6 +1,6 @@
 // ISSUES:
 // fgets function stops parsing on newline character
-// correct input in tui_hexdump(), incorrect in hexdump()
+// tui_hexdump() discards first line
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +9,10 @@
 
 FILE *fptr;
 char *fpath;
+long fsize;
+char *file_buffer;
+
+size_t return_code;
 unsigned char buffer[16];
 char dec_ascii[16];
 int lines = 0;
@@ -82,6 +86,42 @@ void print_ascii()
 // Classic hexdump to CLI without ncurses
 void hexdump()
 {
+	// Get file size:
+	fseek(fptr , 0 , SEEK_END);
+	fsize = ftell(fptr);
+	rewind (fptr);
+
+	// Allocate memory for file buffer
+	file_buffer = (char *) malloc (sizeof(char)*fsize);
+	printf("Size of file: %d Bytes\n", fsize);
+	printf("Number of full lines: %d\n", (fsize/16));
+	printf("Last line size: %d Bytes\n", (fsize % 16));
+
+	// Load file into buffer
+	return_code = fread(file_buffer, 1, fsize, fptr);
+
+	printf("00000000  ");
+	for (int c = 0; c < fsize; c++)
+	{
+		char *pos = (char*) file_buffer + c;
+		buffer[c%16] = *pos;
+		printf("%02X ", *pos);
+		if (c % 16 == 0 && c != 0) { printf("\n%08X  ", c); }
+	}
+	printf("\n");
+
+	/*
+	while (fread(buffer, 16, 16, fptr))
+	{
+		return_code = fread(buffer, 16, 16, fptr);
+		for (int i = 0; i < sizeof buffer; i++)
+		{ printf("%02X ", buffer[i]); }
+		printf("\n");
+	}
+	printf("Return code: %d\n", return_code);
+	*/	
+
+	/*
     while (fgets(buffer, sizeof buffer, fptr) != NULL)
     {
 	printf("%08X  ", lines);
@@ -93,6 +133,7 @@ void hexdump()
 	printf("\n");
 	lines++;
     }
+	*/
 }
 
 // Hexdump in textual user interface with ncurses
@@ -219,7 +260,7 @@ int main(int argc, char *argv[])
 
 	if (f_flag != 1) { fprintf(stderr, "No file given in arguments\n"); exit(0); }
 
-	fptr = fopen(fpath, "r");
+	fptr = fopen(fpath, "rb");
 	if (fptr == NULL) { perror ("Error opening file"); exit(2); }
 
 	if (t_flag != 1) { hexdump(); }
