@@ -1,8 +1,14 @@
+// ISSUES:
+// fgets function stops parsing on newline character
+// correct input in tui_hexdump(), incorrect in hexdump()
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <ncurses.h>
 
 FILE *fptr;
+char *fpath;
 unsigned char buffer[16];
 char dec_ascii[16];
 int lines = 0;
@@ -17,14 +23,52 @@ WINDOW *hex_win;
 WINDOW *ascii_win;
 
 int tui_size_y = 20;
+int tui_size_x = 20;
 int hex_win_size_x = 51;
 
-void quit()
+void print_usage()
 {
-    	endwin();
+	printf("Usage: \n");
+}
+
+void init_tui()
+{
+    initscr();
+    noecho();
+    start_color();
+
+    getmaxyx(stdscr, max_y, max_x);
+    tui_size_y = max_y;
+    tui_size_x = max_x;
+
+    addr_win = newwin(tui_size_y, 12, 1, 0);
+    hex_win = newwin(tui_size_y, hex_win_size_x, 1, 12);
+    ascii_win = newwin(tui_size_y, 20, 1, 63);
+    refresh();
+
+    box(addr_win, 0, 0);
+    box(hex_win, 0, 0);
+    box(ascii_win, 0, 0);
+
+    mvwprintw(addr_win, 0, 1, "ADDR");
+    mvwprintw(hex_win, 0, 1, "VALUES");
+    mvwprintw(ascii_win, 0, 1, "ASCII");
+
+    move(1, 14);
+
+    wrefresh(addr_win);
+    wrefresh(hex_win);
+    wrefresh(ascii_win);
+
+}
+
+void tui_quit()
+{
+	endwin();
 	exit(0);
 }
 
+// Print values decoded as ASCII
 void print_ascii()
 {
     printf("  | "); 
@@ -40,7 +84,7 @@ void hexdump()
 {
     while (fgets(buffer, sizeof buffer, fptr) != NULL)
     {
-	printf("%08X  : ", lines);
+	printf("%08X  ", lines);
 	for (int i = 0; i < sizeof buffer; i++)
 	{
 	    printf("%02X ", buffer[i]);
@@ -51,14 +95,16 @@ void hexdump()
     }
 }
 
-// Classic hexdump with ncurses
+// Hexdump in textual user interface with ncurses
 void tui_hexdump()
 {
-    //mvprintw(hex_
     for (int n = 0; n < tui_size_y - 2; n++)
     {
 	//Read from file into buffer
-	fgets(buffer, sizeof buffer, fptr);
+	if (fgets(buffer, sizeof buffer, fptr) != NULL)
+	{
+		fgets(buffer, sizeof buffer, fptr);
+	} else { break; }
 
 	//Print memory offset
 	mvwprintw(addr_win, lines+1, 2, "%08X", lines);
@@ -92,40 +138,10 @@ void tui_hexdump()
     }
 }
 
-
-int main(int argc, char *argv[])
+int tui_run()
 {
-
-    if (argc < 2)
-    {
-	printf("No arguments were passed.\n");
-	exit(1);
-    }
-
-    fptr = fopen(argv[1], "r");
-
-    //Init ncurses TUI
-    initscr();
-    noecho();
-    start_color();
-
-    getmaxyx(stdscr, max_y, max_x);
-    tui_size_y = max_y;
-
-    addr_win = newwin(tui_size_y,12,0,0);
-    hex_win = newwin(tui_size_y,hex_win_size_x,0,12);
-    ascii_win = newwin(tui_size_y,20,0,63);
-    refresh();
-
-    box(addr_win, 0, 0);
-    box(hex_win, 0, 0);
-    box(ascii_win, 0, 0);
-
-    mvwprintw(addr_win, 0, 1, "ADDR");
-    mvwprintw(hex_win, 0, 1, "VALUES");
-    mvwprintw(ascii_win, 0, 1, "ASCII");
-
-    move(1, 14);
+    //Textual User Interface mode
+    init_tui();
     getyx(hex_win, cpos[0],cpos[1]);
 
     tui_hexdump();
@@ -134,7 +150,6 @@ int main(int argc, char *argv[])
     wrefresh(hex_win);
     wrefresh(ascii_win);
 
-
     //Handle navigation input
     while (1)
     {
@@ -142,7 +157,7 @@ int main(int argc, char *argv[])
 	switch(input)
 	{
 	//Menu
-	    case 113:  quit();	//q 
+	    case 113:  tui_quit();	//q 
 	//Vertical movement
 	    case 106:  cpos[0]++; break;  //j
 	    case 107:  cpos[0]--; break;  //k
@@ -160,14 +175,56 @@ int main(int argc, char *argv[])
 	else if (cpos[1] >= hex_win_size_x-2) { cpos[1]-=2; }
 	else if (cpos[1] <= 1) { cpos[1]+=2; }
 	wmove(hex_win, cpos[0], cpos[1]);
+	wrefresh(hex_win);
 	//Highlight corresponding ASCII
 	//mvwchgat(ascii_win, cpos[0], cpos[1]/2, 1, A_STANDOUT, 0, NULL);
-	wrefresh(hex_win);
-	wrefresh(ascii_win);
     }
 
     endwin();
+	return 0;
+}
 
-    fclose(fptr);
+int main(int argc, char *argv[])
+{
+	// Option and argument handlin
+	int opt;
+	int t_flag;
+	int f_flag;
+	while ((opt = getopt(argc, argv, "f:ht::")) != -1)
+	{
+		switch (opt)
+		{
+			case 'h':
+				printf("Usage: ");
+				exit(0);
+			case 'f':
+				f_flag = 1;
+				fpath = optarg;
+				break;
+			case 't':
+				t_flag = 1;
+				break;
+			case '?':
+				if (optopt == 'f')
+				{
+					fprintf(stderr, "Option -f requires a file as argument.\n");
+				}
+				else
+				{
+					fprintf(stderr, "Unknown option: -%c\n", optopt);
+				}
+				exit(1);
+		}
+	}
+
+	if (f_flag != 1) { fprintf(stderr, "No file given in arguments\n"); exit(0); }
+
+	fptr = fopen(fpath, "r");
+	if (fptr == NULL) { perror ("Error opening file"); exit(2); }
+
+	if (t_flag != 1) { hexdump(); }
+	else { tui_run(); }
+
+	fclose(fptr);
     return 0;
 }
