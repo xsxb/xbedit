@@ -15,7 +15,7 @@ char *file_buffer;
 size_t return_code;
 unsigned char buffer[16];
 char dec_ascii[16];
-int lines = 0;
+//int lines = 0;
 
 int cpos[2];
 int max_x;
@@ -33,6 +33,28 @@ int hex_win_size_x = 51;
 void print_usage()
 {
 	printf("Usage: \n");
+}
+
+int load_file()
+{
+	// Get file size:
+	fseek(fptr , 0 , SEEK_END);
+	fsize = ftell(fptr);
+	rewind (fptr);
+
+	// Allocate memory for file buffer
+	file_buffer = (char *) malloc (sizeof(char)*fsize);
+
+	/*
+	printf("Size of file: %d Bytes\n", fsize);
+	printf("Number of full lines: %d\n", (fsize/16));
+	printf("Last line size: %d Bytes\n", (fsize % 16));
+	*/
+
+	// Load file into buffer
+	return_code = fread(file_buffer, 1, fsize, fptr);
+
+	return return_code;
 }
 
 void init_tui()
@@ -86,19 +108,7 @@ void print_ascii()
 // Classic hexdump to CLI without ncurses
 void hexdump()
 {
-	// Get file size:
-	fseek(fptr , 0 , SEEK_END);
-	fsize = ftell(fptr);
-	rewind (fptr);
-
-	// Allocate memory for file buffer
-	file_buffer = (char *) malloc (sizeof(char)*fsize);
-	printf("Size of file: %d Bytes\n", fsize);
-	printf("Number of full lines: %d\n", (fsize/16));
-	printf("Last line size: %d Bytes\n", (fsize % 16));
-
-	// Load file into buffer
-	return_code = fread(file_buffer, 1, fsize, fptr);
+	load_file();
 
 	// Output to console
 	printf("00000000  ");
@@ -119,30 +129,23 @@ void hexdump()
 // Hexdump in textual user interface with ncurses
 void tui_hexdump()
 {
+	load_file();
+
     for (int n = 0; n < tui_size_y - 2; n++)
-    {
-	//Read from file into buffer
-	if (fgets(buffer, sizeof buffer, fptr) != NULL)
 	{
-		fgets(buffer, sizeof buffer, fptr);
-	} else { break; }
+		// Print memory offset
+		mvwprintw(addr_win, n+1, 2, "%08X", n * 16);
 
-	//Print memory offset
-	mvwprintw(addr_win, lines+1, 2, "%08X", lines);
-
-	//Print hex values from buffer
-	int xpos = 0;
-	for (int i = 0; i < sizeof buffer; i++)
-	{
-	    if (xpos % 3 == 0)
-	    {
-		mvwprintw(hex_win, n+1, xpos+1, " ");
-		xpos++;
-	    }
-	    mvwprintw(hex_win, n+1, xpos+1, "%02X", buffer[i]);
-	xpos += 2;
+		// Print hex values
+		// byte value needs unsigned cast
+		// +2 offset from window and *3 for spacing 
+		for (int c = 0; c < 16; c++)
+		{
+			mvwprintw(hex_win, n+1, c*3+2, "%02X", (unsigned char) file_buffer[n * 16 + c]);
+		}
 	}
 
+	/*
 	//Print decoded as ASCII
 	for (int i = 0; i < sizeof buffer; i++)
 	{
@@ -157,6 +160,7 @@ void tui_hexdump()
 
 	lines++;
     }
+	*/
 }
 
 int tui_run()
