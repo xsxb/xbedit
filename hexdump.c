@@ -1,6 +1,6 @@
 // ISSUES:
-// fgets function stops parsing on newline character
 // tui_hexdump() discards first line
+// TODO: tui_hexdump ouput from buffer
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,40 +100,20 @@ void hexdump()
 	// Load file into buffer
 	return_code = fread(file_buffer, 1, fsize, fptr);
 
+	// Output to console
 	printf("00000000  ");
 	for (int c = 0; c < fsize; c++)
 	{
-		char *pos = (char*) file_buffer + c;
-		buffer[c%16] = *pos;
-		printf("%02X ", *pos);
-		if (c % 16 == 0 && c != 0) { printf("\n%08X  ", c); }
+		if (c % 16 == 0 && c != 0)
+		{
+			print_ascii();
+			printf("\n%08X  ", c);
+		}
+		unsigned char *byte = (char *) file_buffer + c;
+		buffer[c % 16] = *byte;				//byte array for string conversion
+		printf("%02X ", *byte);
 	}
 	printf("\n");
-
-	/*
-	while (fread(buffer, 16, 16, fptr))
-	{
-		return_code = fread(buffer, 16, 16, fptr);
-		for (int i = 0; i < sizeof buffer; i++)
-		{ printf("%02X ", buffer[i]); }
-		printf("\n");
-	}
-	printf("Return code: %d\n", return_code);
-	*/	
-
-	/*
-    while (fgets(buffer, sizeof buffer, fptr) != NULL)
-    {
-	printf("%08X  ", lines);
-	for (int i = 0; i < sizeof buffer; i++)
-	{
-	    printf("%02X ", buffer[i]);
-	}
-	print_ascii();
-	printf("\n");
-	lines++;
-    }
-	*/
 }
 
 // Hexdump in textual user interface with ncurses
