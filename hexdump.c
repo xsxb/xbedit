@@ -32,7 +32,18 @@ int hex_win_size_x = 51;
 
 void print_usage()
 {
-	printf("Usage: \n");
+	printf("######## Usage ########\n\n\
+	-h \tDisplay help\n\
+	-f \tFile\n \
+	-t \tOpen in TUI mode\n\n\
+	\n --- TUI Mode ---\n\n\
+	q - quit\n\n\
+	Navigation:\n\
+	h - Move cursor left\n\
+	j - Move cursor up\n\
+	k - Move cursor down\n\
+	l - Move cursor right\n");
+
 }
 
 int load_file()
@@ -133,34 +144,27 @@ void tui_hexdump()
 
     for (int n = 0; n < tui_size_y - 2; n++)
 	{
+		if ( n * 16 > fsize) { break; }		//EOF
+
 		// Print memory offset
 		mvwprintw(addr_win, n+1, 2, "%08X", n * 16);
 
 		// Print hex values
-		// byte value needs unsigned cast
-		// +2 offset from window and *3 for spacing 
+		// +2 x-offset from window and *3 for spacing 
+		int file_pos;
 		for (int c = 0; c < 16; c++)
 		{
-			mvwprintw(hex_win, n+1, c*3+2, "%02X", (unsigned char) file_buffer[n * 16 + c]);
+			file_pos = n * 16 + c;
+			if (file_pos > fsize) { break; }	//EOF
+
+			mvwprintw(hex_win, n+1, c*3+2, "%02X", (unsigned char) file_buffer[file_pos]);
+			// Print as ASCII
+			if (file_buffer[file_pos] > 32 && file_buffer[file_pos] < 127)
+			{ mvwprintw(ascii_win, n+1, c+2, "%c", file_buffer[file_pos]); }
+			else
+			{ mvwprintw(ascii_win, n+1, c+2, "."); }
 		}
 	}
-
-	/*
-	//Print decoded as ASCII
-	for (int i = 0; i < sizeof buffer; i++)
-	{
-	    if (buffer[i] > 32 && buffer[i] < 127)
-	    {
-		mvwaddch(ascii_win, lines+1, i+2, buffer[i]);
-	    } else
-	    {
-		mvwaddch(ascii_win, lines+1, i+2, '.');
-	    }
-	}
-
-	lines++;
-    }
-	*/
 }
 
 int tui_run()
@@ -220,7 +224,7 @@ int main(int argc, char *argv[])
 		switch (opt)
 		{
 			case 'h':
-				printf("Usage: ");
+				print_usage();
 				exit(0);
 			case 'f':
 				f_flag = 1;
