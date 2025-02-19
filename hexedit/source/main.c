@@ -14,8 +14,6 @@ char dec_ascii[16];
 
 FILE *fptr;
 char *fpath;
-long fsize;
-char *file_buffer;
 
 void print_usage()
 {
@@ -48,9 +46,14 @@ void print_ascii()
 // Canonical hexdump to CLI 
 void hexdump()
 {
-	load_file(fptr);
+	char *file_buffer;
+
+	file_buffer = load_file(fptr);
+	printf("Size: %d\n", fsize);
+
 
 	// Output to console
+	// not elegant but works
 	printf("00000000  ");
 	for (int c = 0; c < fsize; c++)
 	{
@@ -63,6 +66,7 @@ void hexdump()
 		buffer[c % 16] = *byte;				//byte array for string conversion
 		printf("%02X ", *byte);
 	}
+	print_ascii();
 	printf("\n");
 }
 

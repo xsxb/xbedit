@@ -51,8 +51,9 @@ void init_tui()
 // Canonical hexdump in textual user interface
 void tui_hexdump(FILE *fptr)
 {
-	load_file(fptr);
+	char *file_buffer;
 
+	file_buffer = load_file(fptr);
 
 
     for (int n = 0; n < tui_size_y - 2; n++)

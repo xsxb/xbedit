@@ -4,10 +4,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+long fsize;
 
-int load_file(FILE *fptr)
+// Returns file buffer 
+char * load_file(FILE *fptr)
 {
-	long fsize;
 	char *file_buffer;
 	size_t return_code;
 
@@ -19,16 +20,13 @@ int load_file(FILE *fptr)
 	// Allocate memory for file buffer
 	file_buffer = (char *) malloc (sizeof(char)*fsize);
 
-	/*
-	printf("Size of file: %d Bytes\n", fsize);
-	printf("Number of full lines: %d\n", (fsize/16));
-	printf("Last line size: %d Bytes\n", (fsize % 16));
-	*/
-
 	// Load file into buffer
 	return_code = fread(file_buffer, 1, fsize, fptr);
 
-	return return_code;
+	//TODO: Error handling
+	
+
+	return file_buffer;
 }
 
 #endif
