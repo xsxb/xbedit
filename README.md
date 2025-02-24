@@ -1,10 +1,7 @@
-# README
-This repository is a deposit of my exploratory things, learning about executable binaries.
+# XBEDIT
+A hex editor for Linux terminal I'm working on to learn about executable binaries and for fun.
+Since this is an early work in progress, it's currently just a hexdump.
 
-Currently features a hex editor for Linux terminals.
-
-
-## Hex Editor
 ### Features
 - Canonical hex dump to terminal
 - Executable file format recognition
