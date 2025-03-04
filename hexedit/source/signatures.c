@@ -1,4 +1,5 @@
 #include "signatures.h"
+#include "elf.h"
 
 // arg1 = buffer from file read; arg2 = pointer to signature; arg3 = length of signature
 // TODO: Error handling
@@ -43,3 +44,15 @@ void get_signature(FILE *fptr)
 	printf("Format: %s\n", format);
 }
 
+//TODO: from file buffer:
+void print_elf_header(FILE *fptr)
+{
+   for (int i = 0; i < 2; i++)
+   {
+       int field_value;
+       printf("Field offset: %08X\n", ELF_FIELDS[i] & 0x00FFFFFF);
+       printf("Field size: %d Byte\n", ELF_FIELDS[i] >> 24);
+       printf("Field value: %d\n", field_value);
+       printf("=============================\n");
+   }
+}
